@@ -8,9 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Link as LinkIcon, AlertTriangle, User, Award, Book, Sparkles, Loader2, BrainCircuit, Send, Clock, CheckCircle, XCircle } from 'lucide-react';
-import { demoUser } from '@/lib/data'; // Removed mockJoinRequests
+import { Sparkles, Loader2, BrainCircuit, Send, Clock, CheckCircle, XCircle, Users, ArrowRight } from 'lucide-react';
+import { demoUser } from '@/lib/data'; 
 import Link from 'next/link';
 
 // Component for Empty State
@@ -40,7 +39,7 @@ export default function DashboardPage() {
   
   const [user, setUser] = useState(demoUser);
   const [projects, setProjects] = useState<any[]>([]);
-  const [myRequests, setMyRequests] = useState<any[]>([]); // ✅ New State for Real Requests
+  const [myRequests, setMyRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -93,7 +92,7 @@ export default function DashboardPage() {
         }
     };
 
-    // 4. ✅ NEW: Fetch My Sent Requests
+    // 4. Fetch My Sent Requests
     const fetchMyRequests = async () => {
         try {
             const res = await fetch("/api/requests/user", {
@@ -138,10 +137,9 @@ export default function DashboardPage() {
       </div>
 
       <Tabs defaultValue="projects">
-        <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3 sm:w-auto">
+        <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 sm:w-auto">
           <TabsTrigger value="projects" className="gap-2"><BrainCircuit className="h-4 w-4" /> AI Matched Projects</TabsTrigger>
-          <TabsTrigger value="profile">My Profile</TabsTrigger>
-          <TabsTrigger value="requests">My Applications</TabsTrigger>
+          <TabsTrigger value="requests" className="gap-2"><Send className="h-4 w-4"/> My Applications</TabsTrigger>
         </TabsList>
         
         {/* === AI PROJECTS TAB === */}
@@ -155,12 +153,13 @@ export default function DashboardPage() {
                                 <div>
                                     <CardTitle className="font-headline line-clamp-1">{project.title}</CardTitle>
                                     <CardDescription className="line-clamp-1">
-                                        by {project.owner?.name || "Unknown"}
+                                        by {project.owner?.name || "Project Lead"}
                                     </CardDescription>
                                 </div>
                                 <div className="flex flex-col items-end gap-1">
-                                    <Badge variant={project.matchScore > 80 ? "default" : "secondary"}>
-                                        {project.matchScore}% Match
+                                    {/* ✅ UPDATED: Handle Missing Match Score gracefully */}
+                                    <Badge variant={(project.matchScore || 0) > 80 ? "default" : "secondary"}>
+                                        {project.matchScore ? `${project.matchScore}% Match` : "New Project"}
                                     </Badge>
                                     {project.expertOrLearner && (
                                         <Badge variant="outline" className="text-[10px] uppercase tracking-wide">
@@ -172,7 +171,7 @@ export default function DashboardPage() {
                         </CardHeader>
                         <CardContent className="flex-grow space-y-4">
                             <div className="space-y-1">
-                                <Progress value={project.matchScore} className="h-2" />
+                                <Progress value={project.matchScore || 0} className="h-2" />
                             </div>
 
                             {project.aiReasoning && (
@@ -196,10 +195,13 @@ export default function DashboardPage() {
                                 </div>
                             </div>
                         </CardContent>
-                        <CardFooter className="pt-4 border-t bg-secondary/10">
-                            <Button className="w-full" asChild>
+                        <CardFooter className="pt-4 border-t bg-secondary/10 flex justify-between items-center">
+                            <div className="text-xs text-muted-foreground flex items-center gap-1">
+                                <Users className="w-3 h-3"/> {project.team?.length || 1} Members
+                            </div>
+                            <Button size="sm" asChild>
                                 <Link href={`/projects/${project._id || '0'}/collaborate`}>
-                                    View & Join
+                                    View Project <ArrowRight className="ml-1 h-3 w-3"/>
                                 </Link>
                             </Button>
                         </CardFooter>
@@ -209,63 +211,7 @@ export default function DashboardPage() {
             ) : <NoMatchSuggestions />}
         </TabsContent>
 
-        {/* === PROFILE TAB === */}
-        <TabsContent value="profile" className="mt-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                    <CardTitle className="font-headline flex items-center gap-2"><User className="h-5 w-5"/> Your Profile</CardTitle>
-                    <CardDescription>This is how others see you on the platform.</CardDescription>
-                </div>
-                <Button variant="outline" asChild>
-                  <Link href="/settings">Edit Profile</Link>
-                </Button>
-            </CardHeader>
-            <CardContent className="space-y-6">
-                <div className="flex items-center gap-4">
-                    <Avatar className="h-20 w-20">
-                        <AvatarImage src={user.avatarUrl} alt={user.name}/>
-                        <AvatarFallback>{user.name ? user.name.charAt(0).toUpperCase() : 'U'}</AvatarFallback>
-                    </Avatar>
-                    <div>
-                        <h3 className="text-xl font-bold">{user.name}</h3>
-                        <p className="text-muted-foreground">{user.experienceLevel || "Beginner"}</p>
-                        <p className="text-xs text-muted-foreground">{user.email}</p>
-                    </div>
-                </div>
-                <p className="text-muted-foreground">{user.bio || "No bio added yet."}</p>
-            </CardContent>
-          </Card>
-          
-          <Card className="mt-6">
-            <CardHeader>
-                <CardTitle className="font-headline flex items-center gap-2"><Award className="h-5 w-5"/> Your Skills</CardTitle>
-            </CardHeader>
-            <CardContent>
-                 <div className="grid gap-4 md:grid-cols-2">
-                    {user.skills && user.skills.length > 0 ? (
-                        user.skills.map((skill: any, index: number) => (
-                            <div key={index} className="p-4 border rounded-lg space-y-2">
-                                <div className="flex justify-between items-start">
-                                    <div>
-                                        <h4 className="font-semibold">{skill.name}</h4>
-                                        <p className="text-sm text-muted-foreground">{skill.level}</p>
-                                    </div>
-                                     <Badge variant="secondary">
-                                        <Book className="mr-1 h-3 w-3" /> {skill.mode || "Learner"}
-                                    </Badge>
-                                </div>
-                            </div>
-                        ))
-                    ) : (
-                        <p className="text-muted-foreground text-sm">No skills added yet. Go to Settings to add some.</p>
-                    )}
-                 </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* === REQUESTS TAB (Fixed) === */}
+        {/* === REQUESTS TAB === */}
         <TabsContent value="requests" className="mt-6">
           <Card>
             <CardHeader>

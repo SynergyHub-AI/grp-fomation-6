@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -10,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { X, PlusCircle, ArrowLeft, Loader2 } from 'lucide-react';
+import { X, PlusCircle, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 
@@ -33,7 +32,7 @@ export default function CreateProjectPage() {
     const [skills, setSkills] = useState<string[]>([]);
     const [currentSkill, setCurrentSkill] = useState('');
 
-    // ✅ NEW: Roles State
+    // Roles State
     const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
     const availableRoles = ['Team Lead', 'Developer', 'Designer', 'Operations', 'Tester', 'Product Manager'];
 
@@ -59,7 +58,6 @@ export default function CreateProjectPage() {
         setSkills(skills.filter(skill => skill !== skillToRemove));
     };
 
-    // ✅ NEW: Toggle Roles
     const toggleRole = (role: string) => {
         setSelectedRoles(prev => 
             prev.includes(role) 
@@ -94,7 +92,7 @@ ${description}
                 description: richDescription,
                 techStack: skills,
                 githubLink: repoLink,
-                roles: selectedRoles, // ✅ SEND ROLES TO API
+                roles: selectedRoles, 
                 owner: userId
             };
 
@@ -121,9 +119,7 @@ ${description}
 
   return (
     <div className="space-y-8 max-w-4xl mx-auto">
-        <Button variant="ghost" asChild>
-            <Link href="/dashboard"><ArrowLeft className="mr-2 h-4 w-4"/> Back to Dashboard</Link>
-        </Button>
+        {/* Removed duplicate "Back to Dashboard" button here */}
       
         <form onSubmit={handleSubmit}>
             <Card>
@@ -202,7 +198,7 @@ ${description}
                     </div>
                 </div>
 
-                {/* ✅ UPDATED: Required Roles */}
+                {/* Required Roles */}
                 <div className="space-y-4">
                     <Label>Required Roles</Label>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">

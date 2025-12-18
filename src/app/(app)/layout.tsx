@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   SidebarProvider,
   Sidebar,
@@ -24,21 +24,19 @@ import {
   UserCircle,
   LogOut,
   Bell,
+  ArrowLeft
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { demoUser } from '@/lib/data';
-import { cn } from '@/lib/utils';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const isActive = (path: string) => pathname === path;
-
-  // ✅ FIX: State to track if component has mounted on client
   const [isMounted, setIsMounted] = React.useState(false);
 
-  // ✅ FIX: Set mounted to true only after client load
   React.useEffect(() => {
     setIsMounted(true);
   }, []);
@@ -46,16 +44,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const navItems = [
     { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/projects', label: 'My Projects', icon: FolderKanban },
-    { href: '/projects/new', label: 'Create Project', icon: FilePlus2 }, // ✅ Verified Correct Link
+    { href: '/projects/new', label: 'Create Project', icon: FilePlus2 }, 
     { href: '/settings', label: 'Settings', icon: Settings },
   ];
+
+  // ✅ Define pages where the "Back" button is NOT needed
+  const rootPages = ['/dashboard', '/projects', '/settings', '/profile'];
+  const showBackButton = !rootPages.includes(pathname);
 
   return (
     <SidebarProvider>
       <Sidebar>
-        <SidebarHeader>
-          <Logo />
-        </SidebarHeader>
+        <SidebarHeader><Logo /></SidebarHeader>
         <SidebarContent>
           <SidebarMenu>
             {navItems.map((item) => (
@@ -74,10 +74,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <SidebarMenu>
             <SidebarMenuItem>
               <Link href="/login">
-                <SidebarMenuButton tooltip="Logout">
-                  <LogOut />
-                  <span>Logout</span>
-                </SidebarMenuButton>
+                <SidebarMenuButton tooltip="Logout"><LogOut /><span>Logout</span></SidebarMenuButton>
               </Link>
             </SidebarMenuItem>
           </SidebarMenu>
@@ -85,18 +82,32 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </Sidebar>
 
       <SidebarInset>
-        <header className="flex h-16 items-center justify-between border-b bg-background px-4 md:px-6 sticky top-0 z-30">
+        {/* ✅ UPDATED HEADER WITH BACK BUTTON */}
+        <header className="flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6 sticky top-0 z-30">
           <SidebarTrigger className="md:hidden" />
-          <div className="md:hidden">
-            <Logo />
-          </div>
+          
+          {showBackButton ? (
+            <Button 
+                variant="ghost" 
+                size="sm" 
+                className="gap-1 pl-2 text-muted-foreground hover:text-foreground"
+                onClick={() => router.back()}
+            >
+                <ArrowLeft className="h-4 w-4" />
+                <span className="hidden sm:inline">Back</span>
+            </Button>
+          ) : (
+            // Show Logo on mobile if on root page
+             <div className="md:hidden">
+                <Logo />
+             </div>
+          )}
+
           <div className="ml-auto flex items-center gap-4">
              <Button variant="ghost" size="icon" className="rounded-full">
               <Bell className="h-5 w-5" />
-              <span className="sr-only">Toggle notifications</span>
             </Button>
             
-            {/* ✅ FIX: Only render Dropdown on Client to prevent ID mismatch */}
             {isMounted ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -110,19 +121,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <DropdownMenuContent align="end">
                   <DropdownMenuLabel>My Account</DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild><Link href="/settings"><UserCircle className="mr-2 h-4 w-4" />Profile</Link></DropdownMenuItem>
+                  <DropdownMenuItem asChild><Link href="/profile"><UserCircle className="mr-2 h-4 w-4" />Profile</Link></DropdownMenuItem>
                   <DropdownMenuItem asChild><Link href="/settings"><Settings className="mr-2 h-4 w-4" />Settings</Link></DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild><Link href="/login"><LogOut className="mr-2 h-4 w-4" />Logout</Link></DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              // Fallback visual for Server Side Rendering (prevents layout shift)
               <Button variant="ghost" size="icon" className="rounded-full">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src={demoUser.avatarUrl} alt={demoUser.name} />
-                  <AvatarFallback>{demoUser.name.charAt(0)}</AvatarFallback>
-                </Avatar>
+                <Avatar className="h-8 w-8"><AvatarFallback>{demoUser.name.charAt(0)}</AvatarFallback></Avatar>
               </Button>
             )}
           </div>

@@ -157,7 +157,7 @@ function ProjectCard({ project, isCreator = false }: { project: any; isCreator?:
         <div className="mt-4 flex items-center text-sm text-muted-foreground">
           <Users className="mr-2 h-4 w-4" />
           {/* Default to 1 member (owner) if team is empty */}
-          <span>{project.team ? project.team.length + 1 : 1} Members</span>
+          <span className="ml-2">{project.team ? project.team.length + 1 : 1} Members</span>
         </div>
       </CardContent>
       <CardFooter className="flex justify-between">

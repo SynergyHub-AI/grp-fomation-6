@@ -7,8 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { X, PlusCircle, Link as LinkIcon, AlertTriangle, Book, Award, Loader2, ArrowLeft } from 'lucide-react';
+import { X, PlusCircle, Book, Award, Loader2, ArrowLeft, Github, Linkedin, Globe, Image as ImageIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Switch } from '@/components/ui/switch';
 import { useRouter } from 'next/navigation';
@@ -28,14 +27,21 @@ export default function EditProfilePage() {
     const router = useRouter();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    
+
     const [userId, setUserId] = useState("");
     const [formData, setFormData] = useState({
         name: "",
         email: "",
+        jobTitle: "",
         experienceLevel: "Beginner",
         availability: "Part-time",
-        bio: ""
+        bio: "",
+        avatarUrl: "",
+        socialLinks: {
+            github: "",
+            linkedin: "",
+            portfolio: ""
+        }
     });
 
     const [skills, setSkills] = useState<Skill[]>([]);
@@ -47,7 +53,7 @@ export default function EditProfilePage() {
             router.push("/login");
             return;
         }
-        
+
         const parsedUser = JSON.parse(storedUser);
         const currentUserId = parsedUser.id || parsedUser._id;
         setUserId(currentUserId);
@@ -66,9 +72,16 @@ export default function EditProfilePage() {
                     setFormData({
                         name: u.name || "",
                         email: u.email || parsedUser.email || "",
+                        jobTitle: u.jobTitle || "",
                         experienceLevel: u.experienceLevel || "Beginner",
                         availability: u.availability || "Part-time",
-                        bio: u.bio || ""
+                        bio: u.bio || "",
+                        avatarUrl: u.avatarUrl || u.image || "",
+                        socialLinks: {
+                            github: u.socialLinks?.github || "",
+                            linkedin: u.socialLinks?.linkedin || "",
+                            portfolio: u.socialLinks?.portfolio || ""
+                        }
                     });
 
                     if (u.skills && Array.isArray(u.skills)) {
@@ -113,6 +126,13 @@ export default function EditProfilePage() {
         setSkills(skills.map(s => (s.id === skillId || s._id === skillId) ? { ...s, [field]: value } : s));
     }
 
+    const handleSocialChange = (key: string, value: string) => {
+        setFormData(prev => ({
+            ...prev,
+            socialLinks: { ...prev.socialLinks, [key]: value }
+        }));
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setSaving(true);
@@ -130,10 +150,10 @@ export default function EditProfilePage() {
             if (res.ok) {
                 const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
                 const updatedUser = { ...currentUser, ...data.user };
-                localStorage.setItem("user", JSON.stringify(updatedUser));
+                localStorage.setItem("user", JSON.stringify(updatedUser)); // Update local storage
 
                 toast({ title: "Profile Updated", description: "Changes saved successfully." });
-                router.push('/profile'); // Redirect back to profile after save
+                router.push('/profile');
             } else {
                 throw new Error(data.error || "Update failed");
             }
@@ -144,38 +164,128 @@ export default function EditProfilePage() {
         }
     };
 
-    if (loading) return <div className="flex h-screen items-center justify-center gap-2"><Loader2 className="animate-spin h-8 w-8 text-primary"/> Loading profile...</div>;
+    if (loading) return <div className="flex h-screen items-center justify-center gap-2"><Loader2 className="animate-spin h-8 w-8 text-primary" /> Loading profile...</div>;
 
     return (
-    <div className="space-y-8 max-w-4xl mx-auto py-10 px-4">
-        <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" asChild>
-                <Link href="/profile"><ArrowLeft className="h-5 w-5"/></Link>
-            </Button>
-            <div>
-                <h1 className="font-headline text-3xl font-bold">Edit Profile</h1>
-                <p className="text-muted-foreground">Update your public profile and skills.</p>
+        <div className="space-y-8 max-w-4xl mx-auto py-10 px-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="flex items-center gap-4">
+                <Button variant="ghost" size="icon" asChild>
+                    <Link href="/profile"><ArrowLeft className="h-5 w-5" /></Link>
+                </Button>
+                <div>
+                    <h1 className="font-headline text-3xl font-bold">Edit Profile</h1>
+                    <p className="text-muted-foreground">Update your public profile and skills.</p>
+                </div>
             </div>
-        </div>
 
-        <form onSubmit={handleSubmit}>
-            <Card>
-                <CardHeader><CardTitle>Personal Information</CardTitle></CardHeader>
-                <CardContent className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                            <Label>Full Name</Label>
-                            <Input value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})}/>
+            <form onSubmit={handleSubmit} className="space-y-8">
+                <Card>
+                    <CardHeader><CardTitle>Personal Information</CardTitle></CardHeader>
+                    <CardContent className="space-y-6">
+                        {/* Avatar URL Input */}
+                        <div className="space-y-4">
+                            <Label className="flex items-center gap-2"><ImageIcon className="h-4 w-4 text-muted-foreground" /> Profile Image</Label>
+
+                            {/* Visual Preview & Controls */}
+                            <div className="flex gap-6 items-center">
+                                <div className="h-20 w-20 rounded-full overflow-hidden bg-muted border-2 border-border shrink-0 shadow-sm relative group">
+                                    {formData.avatarUrl ? (
+                                        <img src={formData.avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
+                                    ) : (
+                                        <div className="h-full w-full flex items-center justify-center bg-zinc-100 dark:bg-zinc-800">
+                                            <ImageIcon className="h-8 w-8 text-muted-foreground/50" />
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="space-y-2 flex-grow">
+                                    <div className="flex gap-2">
+                                        <Button
+                                            type="button"
+                                            variant="secondary"
+                                            size="sm"
+                                            onClick={() => document.getElementById('file-upload')?.click()}
+                                        >
+                                            Upload Photo
+                                        </Button>
+                                        <input
+                                            id="file-upload"
+                                            type="file"
+                                            accept="image/*"
+                                            className="hidden"
+                                            onChange={(e) => {
+                                                const file = e.target.files?.[0];
+                                                if (file) {
+                                                    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+                                                        toast({ title: "File too large", description: "Please upload an image smaller than 5MB.", variant: "destructive" });
+                                                        return;
+                                                    }
+                                                    const reader = new FileReader();
+                                                    reader.onloadend = () => {
+                                                        setFormData(prev => ({ ...prev, avatarUrl: reader.result as string }));
+                                                    };
+                                                    reader.readAsDataURL(file);
+                                                }
+                                            }}
+                                        />
+                                        {formData.avatarUrl && (
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                className="text-destructive hover:text-destructive/80"
+                                                onClick={() => setFormData(prev => ({ ...prev, avatarUrl: "" }))}
+                                            >
+                                                Remove
+                                            </Button>
+                                        )}
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">Or paste a direct URL below:</p>
+                                    <Input
+                                        value={formData.avatarUrl}
+                                        onChange={(e) => setFormData({ ...formData, avatarUrl: e.target.value })}
+                                        placeholder="https://example.com/my-avatar.jpg"
+                                        className="h-8 text-sm"
+                                    />
+                                </div>
+                            </div>
                         </div>
-                        <div className="space-y-2">
-                            <Label>Email</Label>
-                            <Input value={formData.email} disabled className="bg-muted"/>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <Label>Full Name</Label>
+                                <Input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Job Title</Label>
+                                <Input
+                                    value={formData.jobTitle}
+                                    onChange={(e) => setFormData({ ...formData, jobTitle: e.target.value })}
+                                    placeholder="e.g. Senior Frontend Developer"
+                                />
+                            </div>
                         </div>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <Label>Email</Label>
+                                <Input value={formData.email} disabled className="bg-muted" />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Availability</Label>
+                                <Select value={formData.availability} onValueChange={(val) => setFormData({ ...formData, availability: val })}>
+                                    <SelectTrigger><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="Part-time">Part-time</SelectItem>
+                                        <SelectItem value="Full-time">Full-time</SelectItem>
+                                        <SelectItem value="Flexible">Flexible</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+
                         <div className="space-y-2">
                             <Label>Experience Level</Label>
-                            <Select value={formData.experienceLevel} onValueChange={(val) => setFormData({...formData, experienceLevel: val})}>
+                            <Select value={formData.experienceLevel} onValueChange={(val) => setFormData({ ...formData, experienceLevel: val })}>
                                 <SelectTrigger><SelectValue /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="Beginner">Beginner</SelectItem>
@@ -184,73 +294,95 @@ export default function EditProfilePage() {
                                 </SelectContent>
                             </Select>
                         </div>
+
                         <div className="space-y-2">
-                            <Label>Availability</Label>
-                             <Select value={formData.availability} onValueChange={(val) => setFormData({...formData, availability: val})}>
-                                <SelectTrigger><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="Part-time">Part-time</SelectItem>
-                                    <SelectItem value="Full-time">Full-time</SelectItem>
-                                    <SelectItem value="Flexible">Flexible</SelectItem>
-                                </SelectContent>
-                            </Select>
+                            <Label>Your Bio</Label>
+                            <Textarea value={formData.bio} onChange={(e) => setFormData({ ...formData, bio: e.target.value })} />
                         </div>
-                    </div>
-                    <div className="space-y-2">
-                        <Label>Your Bio</Label>
-                        <Textarea value={formData.bio} onChange={(e) => setFormData({...formData, bio: e.target.value})}/>
-                    </div>
-                </CardContent>
-            </Card>
+                    </CardContent>
+                </Card>
 
-            <Card className="mt-8">
-                <CardHeader>
-                    <CardTitle>Manage Skills</CardTitle>
-                    <CardDescription>Add or remove skills to improve AI matching.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                      <div className="flex gap-2">
-                        <Input placeholder="Add a new skill (e.g. React)..." value={currentSkill} onChange={(e) => setCurrentSkill(e.target.value)} />
-                        <Button type="button" onClick={addSkill}><PlusCircle className="mr-2 h-4 w-4"/>Add</Button>
-                    </div>
-                    
-                    <div className="space-y-4">
-                        {skills.map((skill, index) => (
-                            <div key={skill.id || index} className="p-4 border rounded-lg space-y-4 bg-card">
-                                <div className="flex justify-between items-start">
-                                    <h4 className="font-semibold text-lg">{skill.name}</h4>
-                                    <Button type="button" variant="ghost" size="icon" onClick={() => removeSkill(skill.id!)}><X className="h-4 w-4" /></Button>
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-                                    <div>
-                                        <Label className="text-sm">Proficiency</Label>
-                                         <Select value={skill.level} onValueChange={(value) => handleUpdateSkill(skill.id!, 'level', value)}>
-                                            <SelectTrigger className="mt-1"><SelectValue/></SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="Beginner">Beginner</SelectItem>
-                                                <SelectItem value="Intermediate">Intermediate</SelectItem>
-                                                <SelectItem value="Advanced">Advanced</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <div className="flex items-center justify-between mt-5 p-3 rounded-md bg-muted">
-                                        <Label className="flex items-center gap-2"><Book className="h-4 w-4" /> Learner</Label>
-                                        <Switch checked={skill.mode === 'Expert'} onCheckedChange={(checked) => handleUpdateSkill(skill.id!, 'mode', checked ? 'Expert' : 'Learner')} />
-                                        <Label className="flex items-center gap-2">Expert <Award className="h-4 w-4" /></Label>
-                                    </div>
-                                </div>
+                {/* Social Links Section */}
+                <Card>
+                    <CardHeader><CardTitle>Social Links</CardTitle><CardDescription>Where can people find you?</CardDescription></CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <Label className="flex items-center gap-2"><Github className="h-4 w-4" /> GitHub URL</Label>
+                                <Input
+                                    value={formData.socialLinks.github}
+                                    onChange={(e) => handleSocialChange('github', e.target.value)}
+                                    placeholder="https://github.com/username"
+                                />
                             </div>
-                        ))}
-                    </div>
-                </CardContent>
-            </Card>
+                            <div className="space-y-2">
+                                <Label className="flex items-center gap-2"><Linkedin className="h-4 w-4" /> LinkedIn URL</Label>
+                                <Input
+                                    value={formData.socialLinks.linkedin}
+                                    onChange={(e) => handleSocialChange('linkedin', e.target.value)}
+                                    placeholder="https://linkedin.com/in/username"
+                                />
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <Label className="flex items-center gap-2"><Globe className="h-4 w-4" /> Portfolio / Website</Label>
+                            <Input
+                                value={formData.socialLinks.portfolio}
+                                onChange={(e) => handleSocialChange('portfolio', e.target.value)}
+                                placeholder="https://mywebsite.com"
+                            />
+                        </div>
+                    </CardContent>
+                </Card>
 
-             <div className="mt-8 flex justify-end pb-10">
-                <Button type="submit" disabled={saving} size="lg">
-                    {saving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin"/> Saving...</> : "Save Changes"}
-                </Button>
-            </div>
-        </form>
-    </div>
-  );
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Manage Skills</CardTitle>
+                        <CardDescription>Add or remove skills to improve AI matching.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        <div className="flex gap-2">
+                            <Input placeholder="Add a new skill (e.g. React)..." value={currentSkill} onChange={(e) => setCurrentSkill(e.target.value)} />
+                            <Button type="button" onClick={addSkill}><PlusCircle className="mr-2 h-4 w-4" />Add</Button>
+                        </div>
+
+                        <div className="space-y-4">
+                            {skills.map((skill, index) => (
+                                <div key={skill.id || index} className="p-4 border rounded-lg space-y-4 bg-card">
+                                    <div className="flex justify-between items-start">
+                                        <h4 className="font-semibold text-lg">{skill.name}</h4>
+                                        <Button type="button" variant="ghost" size="icon" onClick={() => removeSkill(skill.id!)}><X className="h-4 w-4" /></Button>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                                        <div>
+                                            <Label className="text-sm">Proficiency</Label>
+                                            <Select value={skill.level} onValueChange={(value) => handleUpdateSkill(skill.id!, 'level', value)}>
+                                                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="Beginner">Beginner</SelectItem>
+                                                    <SelectItem value="Intermediate">Intermediate</SelectItem>
+                                                    <SelectItem value="Advanced">Advanced</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <div className="flex items-center justify-between mt-5 p-3 rounded-md bg-muted">
+                                            <Label className="flex items-center gap-2"><Book className="h-4 w-4" /> Learner</Label>
+                                            <Switch checked={skill.mode === 'Expert'} onCheckedChange={(checked) => handleUpdateSkill(skill.id!, 'mode', checked ? 'Expert' : 'Learner')} />
+                                            <Label className="flex items-center gap-2">Expert <Award className="h-4 w-4" /></Label>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <div className="flex justify-end pb-10">
+                    <Button type="submit" disabled={saving} size="lg" className="shadow-lg shadow-primary/20">
+                        {saving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : "Save Changes"}
+                    </Button>
+                </div>
+            </form>
+        </div>
+    );
 }

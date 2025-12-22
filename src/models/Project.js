@@ -9,6 +9,18 @@ const ProjectSchema = new mongoose.Schema({
     type: String,
     required: [true, "Please provide a description"],
   },
+  type: {
+    type: String, // e.g. 'Startup', 'Hackathon'
+    default: 'Personal'
+  },
+  timeCommitment: {
+    type: String, // e.g. 'Part-time', 'Full-time'
+    default: 'Flexible'
+  },
+  teamSize: {
+    type: Number,
+    default: 1
+  },
   techStack: {
     type: [String],
     default: [],
@@ -19,9 +31,9 @@ const ProjectSchema = new mongoose.Schema({
   owner: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true, 
+    required: true,
   }, // <--- The missing comma was here!
-  
+
   // ✅ NEW FIELD: Track team members
   team: [
     {

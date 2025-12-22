@@ -25,16 +25,19 @@ export async function POST(request) {
 export async function PUT(request) {
   try {
     await connectDB();
-    const { userId, name, bio, skills, experienceLevel, availability } = await request.json();
+    const { userId, name, bio, skills, experienceLevel, availability, jobTitle, socialLinks, avatarUrl } = await request.json();
 
     const updatedUser = await User.findByIdAndUpdate(
       userId,
-      { 
-        name, 
-        bio, 
-        skills, 
+      {
+        name,
+        bio,
+        skills,
         experienceLevel,
-        availability
+        availability,
+        jobTitle,
+        socialLinks,
+        avatarUrl
       },
       { new: true } // Return the updated document
     );

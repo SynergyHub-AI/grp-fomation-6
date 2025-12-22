@@ -3,11 +3,17 @@ export type User = {
   name: string;
   email: string;
   bio: string;
+  jobTitle?: string;
   skills: Skill[];
   interests: string[];
   availability: 'Part-time' | 'Full-time' | 'Flexible';
   experienceLevel: 'Beginner' | 'Intermediate' | 'Advanced';
   avatarUrl: string;
+  socialLinks?: {
+    github?: string;
+    linkedin?: string;
+    portfolio?: string;
+  };
 };
 
 export type Skill = {

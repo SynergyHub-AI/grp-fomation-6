@@ -9,15 +9,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { X, PlusCircle, Loader2 } from 'lucide-react';
-// ✅ FIXED: Imported toast from sonner
+import { X, PlusCircle, Loader2, Sparkles, Rocket } from 'lucide-react';
 import { toast } from "sonner";
 import { useRouter } from 'next/navigation';
 
 export default function CreateProjectPage() {
     const router = useRouter();
-    // ❌ REMOVED: const { toast } = useToast();
-    
+
     const [loading, setLoading] = useState(false);
     const [userId, setUserId] = useState<string | null>(null);
 
@@ -28,7 +26,7 @@ export default function CreateProjectPage() {
     const [timeCommitment, setTimeCommitment] = useState('');
     const [teamSize, setTeamSize] = useState('');
     const [repoLink, setRepoLink] = useState('');
-    
+
     // Skills State
     const [skills, setSkills] = useState<string[]>([]);
     const [currentSkill, setCurrentSkill] = useState('');
@@ -37,7 +35,6 @@ export default function CreateProjectPage() {
     const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
     const availableRoles = ['Team Lead', 'Developer', 'Designer', 'Operations', 'Tester', 'Product Manager'];
 
-    // 1. Check Auth on Load
     useEffect(() => {
         const storedUser = localStorage.getItem("user");
         if (!storedUser) {
@@ -54,14 +51,14 @@ export default function CreateProjectPage() {
             setCurrentSkill('');
         }
     };
-    
+
     const removeSkill = (skillToRemove: string) => {
         setSkills(skills.filter(skill => skill !== skillToRemove));
     };
 
     const toggleRole = (role: string) => {
-        setSelectedRoles(prev => 
-            prev.includes(role) 
+        setSelectedRoles(prev =>
+            prev.includes(role)
                 ? prev.filter(r => r !== role)
                 : [...prev, role]
         );
@@ -69,33 +66,25 @@ export default function CreateProjectPage() {
 
     const handleSubmit = async (event: React.FormEvent) => {
         event.preventDefault();
-        
+
         if (!userId) {
-            // ✅ FIXED: Using toast.error
             toast.error("Error", { description: "You must be logged in." });
             return;
         }
 
         setLoading(true);
 
-        const richDescription = `
-${description}
-
----
-**Project Details**
-• Type: ${type}
-• Commitment: ${timeCommitment}
-• Team Size Goal: ${teamSize}
-        `.trim();
-
         try {
             const payload = {
                 title,
-                description: richDescription,
+                description, // Send clean description
                 techStack: skills,
                 githubLink: repoLink,
-                roles: selectedRoles, 
-                owner: userId
+                roles: selectedRoles,
+                owner: userId,
+                type,
+                timeCommitment,
+                teamSize: Number(teamSize)
             };
 
             const res = await fetch("/api/projects", {
@@ -105,7 +94,6 @@ ${description}
             });
 
             if (res.ok) {
-                // ✅ FIXED: Using toast.success
                 toast.success("Project Created! 🎉", { description: "Your project is now live." });
                 router.push('/dashboard');
             } else {
@@ -114,121 +102,162 @@ ${description}
 
         } catch (error) {
             console.error(error);
-            // ✅ FIXED: Using toast.error
             toast.error("Error", { description: "Something went wrong." });
         } finally {
             setLoading(false);
         }
     }
 
-  return (
-    <div className="space-y-8 max-w-4xl mx-auto">
-      
-        <form onSubmit={handleSubmit}>
-            <Card>
-                <CardHeader>
-                <CardTitle className="font-headline text-3xl">Create a New Project</CardTitle>
-                <CardDescription>Fill out the details below to get your project started.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                
-                {/* Title & Description */}
-                <div className="space-y-2">
-                    <Label htmlFor="title">Project Title</Label>
-                    <Input id="title" required value={title} onChange={(e) => setTitle(e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="description">Project Description</Label>
-                    <Textarea id="description" required value={description} onChange={(e) => setDescription(e.target.value)} />
-                </div>
+    return (
+        <div className="space-y-8 max-w-4xl mx-auto py-8 px-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
-                {/* Dropdowns */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                    <Label>Project Type</Label>
-                    <Select required onValueChange={setType}>
-                        <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
-                        <SelectContent>
-                        <SelectItem value="Hackathon">Hackathon</SelectItem>
-                        <SelectItem value="NGO">NGO</SelectItem>
-                        <SelectItem value="Startup">Startup</SelectItem>
-                        <SelectItem value="Social">Social</SelectItem>
-                        </SelectContent>
-                    </Select>
-                    </div>
-                    <div className="space-y-2">
-                    <Label>Time Commitment</Label>
-                    <Select required onValueChange={setTimeCommitment}>
-                        <SelectTrigger><SelectValue placeholder="Select commitment" /></SelectTrigger>
-                        <SelectContent>
-                        <SelectItem value="Part-time">Part-time</SelectItem>
-                        <SelectItem value="Full-time">Full-time</SelectItem>
-                        </SelectContent>
-                    </Select>
-                    </div>
-                </div>
+            <div className="text-center space-y-2 mb-8">
+                <h1 className="font-headline text-4xl font-bold tracking-tight">Launch Your Idea</h1>
+                <p className="text-muted-foreground text-lg">Create a workspace, find your team, and build something amazing.</p>
+            </div>
 
-                {/* Team & Repo */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                    <Label>Team Size</Label>
-                    <Input type="number" required value={teamSize} onChange={(e) => setTeamSize(e.target.value)} />
-                    </div>
-                    <div className="space-y-2">
-                    <Label>Repository Link</Label>
-                    <Input placeholder="https://github.com/..." value={repoLink} onChange={(e) => setRepoLink(e.target.value)} />
-                    </div>
-                </div>
+            <form onSubmit={handleSubmit}>
+                <Card className="border-border/50 bg-card/50 backdrop-blur-sm shadow-xl relative overflow-hidden">
+                    <div className="absolute top-0 w-full h-1 bg-gradient-to-r from-primary/50 via-secondary/50 to-primary/50"></div>
 
-                {/* Skills */}
-                <div className="space-y-2">
-                    <Label>Required Skills</Label>
-                    <div className="flex items-center gap-2">
-                        <Input 
-                            placeholder="Add a skill..." 
-                            value={currentSkill}
-                            onChange={(e) => setCurrentSkill(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addSkill())}
-                        />
-                        <Button type="button" variant="outline" onClick={addSkill}><PlusCircle className="mr-2 h-4 w-4"/> Add</Button>
-                    </div>
-                    <div className="flex flex-wrap gap-2 pt-2">
-                        {skills.map((skill) => (
-                        <Badge key={skill} variant="secondary">
-                            {skill} <X className="ml-2 h-3 w-3 cursor-pointer" onClick={() => removeSkill(skill)} />
-                        </Badge>
-                        ))}
-                    </div>
-                </div>
+                    <CardHeader>
+                        <CardTitle className="font-headline text-2xl flex items-center gap-2">
+                            <Rocket className="w-6 h-6 text-primary" /> Project Details
+                        </CardTitle>
+                        <CardDescription>Tell us about what you're building.</CardDescription>
+                    </CardHeader>
 
-                {/* Required Roles */}
-                <div className="space-y-4">
-                    <Label>Required Roles</Label>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                        {availableRoles.map((role) => (
-                            <div key={role} className="flex items-center space-x-2">
-                                <Checkbox 
-                                    id={`role-${role}`} 
-                                    checked={selectedRoles.includes(role)}
-                                    onCheckedChange={() => toggleRole(role)}
+                    <CardContent className="space-y-8">
+
+                        {/* Title & Description */}
+                        <div className="grid gap-6">
+                            <div className="space-y-2">
+                                <Label htmlFor="title" className="text-base font-semibold">Project Title</Label>
+                                <Input
+                                    id="title"
+                                    required
+                                    value={title}
+                                    onChange={(e) => setTitle(e.target.value)}
+                                    placeholder="e.g. AI-Powered Task Manager"
+                                    className="bg-background/50 text-lg h-12 border-border/60 focus:border-primary/50"
                                 />
-                                <Label htmlFor={`role-${role}`} className="font-normal cursor-pointer" onClick={() => toggleRole(role)}>
-                                    {role}
-                                </Label>
                             </div>
-                        ))}
-                    </div>
-                    <p className="text-xs text-muted-foreground">Select the roles you are actively looking for.</p>
-                </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="description" className="text-base font-semibold">Elevator Pitch</Label>
+                                <Textarea
+                                    id="description"
+                                    required
+                                    value={description}
+                                    onChange={(e) => setDescription(e.target.value)}
+                                    placeholder="Describe your project's goal, target audience, and key features..."
+                                    className="min-h-[120px] bg-background/50 border-border/60 focus:border-primary/50 resize-y"
+                                />
+                            </div>
+                        </div>
 
-                </CardContent>
-                <CardFooter>
-                    <Button type="submit" className="w-full md:w-auto" disabled={loading}>
-                        {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin"/> Creating...</> : "Create Project"}
-                    </Button>
-                </CardFooter>
-            </Card>
-        </form>
-    </div>
-  );
+                        {/* Dropdowns */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <Label className="font-semibold">Project Type</Label>
+                                <Select required onValueChange={setType}>
+                                    <SelectTrigger className="bg-background/50 border-border/60 h-10"><SelectValue placeholder="Select type" /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="Hackathon">Hackathon</SelectItem>
+                                        <SelectItem value="NGO">NGO</SelectItem>
+                                        <SelectItem value="Startup">Startup</SelectItem>
+                                        <SelectItem value="Social">Social</SelectItem>
+                                        <SelectItem value="Personal">Personal Portfolio</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="font-semibold">Time Commitment</Label>
+                                <Select required onValueChange={setTimeCommitment}>
+                                    <SelectTrigger className="bg-background/50 border-border/60 h-10"><SelectValue placeholder="Select commitment" /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="Part-time">Part-time (&lt; 10hrs/wk)</SelectItem>
+                                        <SelectItem value="Full-time">Full-time (&gt; 30hrs/wk)</SelectItem>
+                                        <SelectItem value="Casual">Casual / Weekend</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+
+                        {/* Team & Repo */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <Label className="font-semibold">Target Team Size</Label>
+                                <Input
+                                    type="number"
+                                    required
+                                    value={teamSize}
+                                    onChange={(e) => setTeamSize(e.target.value)}
+                                    className="bg-background/50 border-border/60 h-10"
+                                    min="1"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="font-semibold">Repository Link (Optional)</Label>
+                                <Input
+                                    placeholder="https://github.com/username/repo"
+                                    value={repoLink}
+                                    onChange={(e) => setRepoLink(e.target.value)}
+                                    className="bg-background/50 border-border/60 h-10"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Skills */}
+                        <div className="space-y-3">
+                            <Label className="font-semibold">Tech Stack & Skills</Label>
+                            <div className="flex items-center gap-2">
+                                <Input
+                                    placeholder="e.g. React, Python, AWS..."
+                                    value={currentSkill}
+                                    onChange={(e) => setCurrentSkill(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addSkill())}
+                                    className="bg-background/50 border-border/60 h-10 focus:ring-primary/50"
+                                />
+                                <Button type="button" onClick={addSkill} className="shrink-0 h-10"><PlusCircle className="mr-2 h-4 w-4" /> Add</Button>
+                            </div>
+                            <div className="flex flex-wrap gap-2 min-h-[40px] p-2 rounded-lg bg-muted/20 border border-border/30 border-dashed">
+                                {skills.length === 0 && <span className="text-sm text-muted-foreground w-full text-center py-1">No skills added yet</span>}
+                                {skills.map((skill) => (
+                                    <Badge key={skill} variant="secondary" className="pl-3 pr-2 py-1 flex items-center gap-1 bg-secondary hover:bg-secondary/80">
+                                        {skill} <X className="h-3 w-3 cursor-pointer opacity-50 hover:opacity-100" onClick={() => removeSkill(skill)} />
+                                    </Badge>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Required Roles */}
+                        <div className="space-y-4 pt-2">
+                            <Label className="font-semibold">Who are you looking for?</Label>
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                {availableRoles.map((role) => (
+                                    <div key={role} className={`flex items-center space-x-3 p-3 rounded-lg border transition-all cursor-pointer ${selectedRoles.includes(role) ? 'border-primary bg-primary/5' : 'border-border/60 hover:border-primary/30 hover:bg-muted/30'}`} onClick={() => toggleRole(role)}>
+                                        <Checkbox
+                                            id={`role-${role}`}
+                                            checked={selectedRoles.includes(role)}
+                                            className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                                            onCheckedChange={() => toggleRole(role)}
+                                        />
+                                        <Label htmlFor={`role-${role}`} className="font-normal cursor-pointer flex-grow">
+                                            {role}
+                                        </Label>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                    </CardContent>
+                    <CardFooter className="pt-2 pb-8 flex justify-end">
+                        <Button type="submit" size="lg" className="w-full md:w-auto h-12 px-8 text-base shadow-lg shadow-primary/20 hover:scale-[1.02] transition-transform" disabled={loading}>
+                            {loading ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Launching...</> : <><Rocket className="mr-2 h-5 w-5" /> Launch Project</>}
+                        </Button>
+                    </CardFooter>
+                </Card>
+            </form>
+        </div >
+    );
 }

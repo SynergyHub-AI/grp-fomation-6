@@ -4,6 +4,7 @@ import './globals.css';
 import { cn } from '@/lib/utils';
 // ✅ CHANGE 1: Import the new wrapper instead of the direct provider
 import AuthProvider from "@/components/AuthProvider";
+import { ThemeProvider } from "@/components/theme-provider";
 
 export const metadata: Metadata = {
   title: 'SynergyHub AI',
@@ -25,9 +26,16 @@ export default function RootLayout({
       <body className={cn('font-body antialiased')}>
         {/* ✅ CHANGE 2: Wrap children with AuthProvider */}
         <AuthProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
             {children}
+          </ThemeProvider>
         </AuthProvider>
-        
+
         <Toaster richColors position="top-right" />
       </body>
     </html>

@@ -10,6 +10,7 @@ export const mockUsers: User[] = [
     id: 'user-1',
     name: 'Alex Doe',
     email: 'alex.doe@example.com',
+    jobTitle: 'Senior Full Stack Developer',
     bio: 'Full-stack developer with a passion for open-source and AI. Looking to contribute to impactful projects.',
     skills: [
       { id: 'skill-1', name: 'React', level: 'Advanced', mode: 'Expert', verification: { type: 'Link', url: 'https://github.com' } },
@@ -21,6 +22,11 @@ export const mockUsers: User[] = [
     availability: 'Part-time',
     experienceLevel: 'Advanced',
     avatarUrl: avatar1,
+    socialLinks: {
+      github: "https://github.com",
+      linkedin: "https://linkedin.com",
+      portfolio: "https://example.com"
+    }
   },
   {
     id: 'user-2',

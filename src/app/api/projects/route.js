@@ -5,28 +5,31 @@ import { NextResponse } from "next/server";
 export async function POST(request) {
   try {
     await connectDB();
-    
+
     // ✅ Get the owner ID from the request body
-    const { title, description, techStack, githubLink, owner } = await request.json();
+    const { title, description, techStack, githubLink, owner, type, timeCommitment, teamSize } = await request.json();
 
     const newProject = await Project.create({
       title,
       description,
       techStack,
       githubLink,
-      owner, // Save the ID of the user who created it
+      owner,
+      type,
+      timeCommitment,
+      teamSize
     });
 
-    return NextResponse.json({ 
-      message: "Project Created Successfully!", 
-      project: newProject 
+    return NextResponse.json({
+      message: "Project Created Successfully!",
+      project: newProject
     }, { status: 201 });
 
   } catch (error) {
     console.error("Project Creation Error:", error);
-    return NextResponse.json({ 
-      error: "Failed to create project", 
-      details: error.message 
+    return NextResponse.json({
+      error: "Failed to create project",
+      details: error.message
     }, { status: 500 });
   }
 }

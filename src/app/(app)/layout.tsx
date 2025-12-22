@@ -43,6 +43,7 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import NotificationBell from '@/components/ui/NotificationBell';
+import SynergyHelp from '@/components/SynergyHelp';
 
 // Fallback data
 import { demoUser } from '@/lib/data';
@@ -234,6 +235,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           {children}
         </main>
       </SidebarInset>
+
+      {/* AI Chatbot - Available on all pages */}
+      <SynergyHelp />
     </SidebarProvider>
   );
 }

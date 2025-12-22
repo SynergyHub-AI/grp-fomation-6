@@ -6,18 +6,24 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Search, Loader2, UserPlus, MapPin, Briefcase, Sparkles, Zap } from "lucide-react";
+import { Search, Loader2, UserPlus, MapPin, Briefcase, Sparkles, Zap, Brain } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
+type SearchMode = 'basic' | 'smart';
 
 export default function SearchProfilesPage() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+  const [searchMode, setSearchMode] = useState<SearchMode>('basic');
+  const [aiPowered, setAiPowered] = useState(false);
 
   // Function to fetch users based on search query
-  const searchUsers = async (searchTerm: string) => {
+  const searchUsers = async (searchTerm: string, mode: SearchMode) => {
     if (!searchTerm) {
       setResults([]);
       return;
@@ -27,11 +33,16 @@ export default function SearchProfilesPage() {
     setHasSearched(true);
 
     try {
-      const res = await fetch(`/api/users/search?q=${encodeURIComponent(searchTerm)}`);
+      const endpoint = mode === 'smart'
+        ? `/api/ai/users/match?q=${encodeURIComponent(searchTerm)}`
+        : `/api/users/search?q=${encodeURIComponent(searchTerm)}`;
+
+      const res = await fetch(endpoint);
       const data = await res.json();
 
       if (res.ok) {
         setResults(data.users || []);
+        setAiPowered(data.aiPowered || false);
       }
     } catch (error) {
       console.error("Failed to search users:", error);
@@ -44,7 +55,7 @@ export default function SearchProfilesPage() {
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
       if (query) {
-        searchUsers(query);
+        searchUsers(query, searchMode);
       } else {
         setResults([]);
         setHasSearched(false);
@@ -52,7 +63,14 @@ export default function SearchProfilesPage() {
     }, 500);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [query]);
+  }, [query, searchMode]);
+
+  // Get compatibility badge color
+  const getScoreBadgeVariant = (score: number) => {
+    if (score >= 90) return "default";
+    if (score >= 75) return "secondary";
+    return "outline";
+  };
 
   return (
     <div className="space-y-12 max-w-6xl mx-auto pb-20">
@@ -71,12 +89,29 @@ export default function SearchProfilesPage() {
           </p>
         </div>
 
+        {/* Search Mode Toggle */}
+        <Tabs value={searchMode} onValueChange={(v) => setSearchMode(v as SearchMode)} className="w-auto">
+          <TabsList className="bg-white/60 dark:bg-white/5 border border-slate-200 dark:border-white/10">
+            <TabsTrigger value="basic" className="gap-2">
+              <Search className="h-4 w-4" />
+              Basic Search
+            </TabsTrigger>
+            <TabsTrigger value="smart" className="gap-2">
+              <Brain className="h-4 w-4" />
+              <span className="flex items-center gap-1">
+                Smart Match
+                <Sparkles className="h-3 w-3" />
+              </span>
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+
         <div className="relative w-full max-w-2xl group z-10">
           <div className="absolute inset-0 bg-primary/30 blur-3xl rounded-full opacity-20 group-focus-within:opacity-60 transition-opacity duration-700" />
           <div className="relative">
             <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors duration-300" />
             <Input
-              placeholder="Try searching 'React', 'Backend', or 'John'..."
+              placeholder={searchMode === 'smart' ? "Try 'React developer' for AI-powered matching..." : "Try searching 'React', 'Backend', or 'John'..."}
               className="pl-14 h-16 text-lg rounded-full border-slate-200 dark:border-white/10 bg-white/60 dark:bg-black/40 backdrop-blur-xl shadow-2xl focus-visible:ring-primary/50 focus-visible:border-primary/50 transition-all placeholder:text-muted-foreground/50"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -88,6 +123,18 @@ export default function SearchProfilesPage() {
             )}
           </div>
         </div>
+
+        {/* AI Status Indicator */}
+        {searchMode === 'smart' && aiPowered && results.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-center gap-2 text-sm text-primary"
+          >
+            <Sparkles className="h-4 w-4 animate-pulse" />
+            <span>AI-powered matching active</span>
+          </motion.div>
+        )}
       </motion.div>
 
       {/* Results Section */}
@@ -102,7 +149,9 @@ export default function SearchProfilesPage() {
               exit={{ opacity: 0 }}
               className="flex flex-col items-center justify-center py-20 text-muted-foreground"
             >
-              <p className="text-lg animate-pulse">Scouring the network...</p>
+              <p className="text-lg animate-pulse">
+                {searchMode === 'smart' ? 'AI is analyzing matches...' : 'Scouring the network...'}
+              </p>
             </motion.div>
           ) : results.length > 0 ? (
             <motion.div
@@ -135,12 +184,34 @@ export default function SearchProfilesPage() {
                         <CardTitle className="text-lg truncate font-headline group-hover:text-primary transition-colors">{user.name}</CardTitle>
                         <CardDescription className="flex items-center gap-1.5 truncate text-sm mt-1 text-muted-foreground/80">
                           <Briefcase className="h-3.5 w-3.5 text-primary/70" />
-                          {user.title || "Developer"}
+                          {user.jobTitle || "Developer"}
                         </CardDescription>
                       </div>
                     </CardHeader>
 
                     <CardContent className="flex-grow relative z-10">
+                      {/* AI Match Score Badge */}
+                      {searchMode === 'smart' && user.compatibilityScore !== undefined && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="mb-3">
+                                <Badge
+                                  variant={getScoreBadgeVariant(user.compatibilityScore)}
+                                  className="gap-1.5 py-1 px-3 bg-gradient-to-r from-primary/20 to-violet-500/20 border-primary/30 text-primary font-semibold"
+                                >
+                                  <Sparkles className="h-3 w-3" />
+                                  {user.compatibilityScore}% Match
+                                </Badge>
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs bg-black/90 text-white border-white/10">
+                              <p className="text-sm">{user.matchReasoning || 'AI-generated compatibility score'}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+
                       <p className="text-sm text-muted-foreground line-clamp-2 mb-4 h-10 leading-relaxed font-light">
                         {user.bio || "Passionate developer looking for exciting projects."}
                       </p>
@@ -196,11 +267,21 @@ export default function SearchProfilesPage() {
               <div className="relative inline-block mb-6">
                 <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full opacity-50 animate-pulse-slow" />
                 <div className="h-20 w-20 bg-slate-100 dark:bg-white/5 rounded-full flex items-center justify-center relative border border-slate-200 dark:border-white/10">
-                  <Search className="h-8 w-8 opacity-40" />
+                  {searchMode === 'smart' ? (
+                    <Brain className="h-8 w-8 opacity-40" />
+                  ) : (
+                    <Search className="h-8 w-8 opacity-40" />
+                  )}
                 </div>
               </div>
-              <h2 className="text-xl font-medium mb-2 text-foreground">Start exploring</h2>
-              <p className="text-lg opacity-50 font-light">Type something above to discover <span className="text-primary opacity-100 font-medium">amazing talent</span>.</p>
+              <h2 className="text-xl font-medium mb-2 text-foreground">
+                {searchMode === 'smart' ? 'AI-Powered Matching Ready' : 'Start exploring'}
+              </h2>
+              <p className="text-lg opacity-50 font-light">
+                {searchMode === 'smart'
+                  ? 'Use Smart Match to find your perfect collaborators with AI ✨'
+                  : 'Type something above to discover amazing talent.'}
+              </p>
             </motion.div>
           )}
         </AnimatePresence>

@@ -1,6 +1,6 @@
 'use server';
 
-import { ai } from '@/ai/genkit';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { z } from 'genkit';
 
 const RecommendProjectsInputSchema = z.object({
@@ -29,24 +29,40 @@ const RecommendProjectsOutputSchema = z.object({
   }))
 });
 
-export const projectMatchingFlow = ai.defineFlow(
-  {
-    name: 'projectMatchingFlow',
-    inputSchema: RecommendProjectsInputSchema,
-    outputSchema: RecommendProjectsOutputSchema,
-  },
-  async (input) => {
-    const prompt = await ai.generate({
-      prompt: `
-        You are an AI Career Matcher.
-        User: ${JSON.stringify(input.userProfile)}
-        Projects: ${JSON.stringify(input.availableProjects)}
-        
-        Task: Analyze fit for EVERY project.
-        Return JSON with 'recommendations' array.
-      `,
-      output: { schema: RecommendProjectsOutputSchema },
+export async function projectMatchingFlow(input: z.infer<typeof RecommendProjectsInputSchema>): Promise<z.infer<typeof RecommendProjectsOutputSchema>> {
+  const prompt = `You are an AI Career Matcher.
+User: ${JSON.stringify(input.userProfile)}
+Projects: ${JSON.stringify(input.availableProjects)}
+
+Task: Analyze fit for EVERY project.
+Return JSON with 'recommendations' array containing:
+- projectId: string
+- matchScore: number (0-100)
+- reasoning: string
+- expertOrLearner: string ("expert" or "learner")
+
+Return ONLY valid JSON.`;
+
+  try {
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-2.0-flash-exp',
+      generationConfig: {
+        responseMimeType: "application/json",
+      }
     });
-    return prompt.output!;
+
+    const result = await model.generateContent({
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+    });
+
+    const response = result.response;
+    const text = response.text();
+    const parsed = JSON.parse(text);
+
+    return parsed;
+  } catch (error) {
+    console.error('Google AI Error in projectMatchingFlow:', error);
+    throw error;
   }
-);
+}

@@ -1,21 +1,27 @@
 import { NextResponse } from "next/server";
-import { assignLearnerFlow } from "@/ai/flows/learner-assignment"; 
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request) {
+  console.log('🚨 ASSIGN API - RETURNING MOCK');
+
   try {
-    const { projectName, learnerSkills, availableRoles } = await request.json();
+    const { projectName, availableRoles } = await request.json();
 
-    const aiResponse = await assignLearnerFlow({
-      projectName,
-      learnerSkills,
-      availableRoles
-    });
+    // Return mock assignment
+    const mockAssignment = {
+      assignedRole: availableRoles?.[0] || "Junior Developer",
+      reason: `This role is perfect for learning on ${projectName}`
+    };
 
-    return NextResponse.json(aiResponse, { status: 200 });
+    console.log('✅ ASSIGN API: Returning mock assignment');
+    return NextResponse.json(mockAssignment, { status: 200 });
 
   } catch (error) {
-    return NextResponse.json({ error: "Assignment Failed" }, { status: 500 });
+    console.error("❌ ASSIGN API Error:", error);
+    return NextResponse.json({
+      assignedRole: "Team Member",
+      reason: "General team support role"
+    }, { status: 200 });
   }
 }

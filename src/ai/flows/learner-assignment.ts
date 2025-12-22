@@ -1,6 +1,6 @@
 'use server';
 
-import { ai } from '@/ai/genkit';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { z } from 'genkit';
 
 const AssignLearnerInputSchema = z.object({
@@ -14,23 +14,34 @@ const AssignLearnerOutputSchema = z.object({
   reason: z.string(),
 });
 
-export const assignLearnerFlow = ai.defineFlow(
-  {
-    name: 'assignLearnerFlow',
-    inputSchema: AssignLearnerInputSchema,
-    outputSchema: AssignLearnerOutputSchema,
-  },
-  async (input) => {
-    const prompt = await ai.generate({
-      prompt: `
-        Assign a safe, non-critical role to a learner for project "${input.projectName}".
-        Skills: ${input.learnerSkills.join(', ')}
-        Roles Available: ${input.availableRoles.join(', ')}
-        
-        Return JSON with 'assignedRole' and 'reason'.
-      `,
-      output: { schema: AssignLearnerOutputSchema },
+export async function assignLearnerFlow(input: z.infer<typeof AssignLearnerInputSchema>): Promise<z.infer<typeof AssignLearnerOutputSchema>> {
+  const prompt = `Assign a safe, non-critical role to a learner for project "${input.projectName}".
+Skills: ${input.learnerSkills.join(', ')}
+Roles Available: ${input.availableRoles.join(', ')}
+
+Return JSON with 'assignedRole' and 'reason'.
+Return ONLY valid JSON.`;
+
+  try {
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-2.0-flash-exp',
+      generationConfig: {
+        responseMimeType: "application/json",
+      }
     });
-    return prompt.output!;
+
+    const result = await model.generateContent({
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+    });
+
+    const response = result.response;
+    const text = response.text();
+    const parsed = JSON.parse(text);
+
+    return parsed;
+  } catch (error) {
+    console.error('Google AI Error in assignLearnerFlow:', error);
+    throw error;
   }
-);
+}

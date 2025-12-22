@@ -1,6 +1,6 @@
 'use server';
 
-import { ai } from '@/ai/genkit';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { z } from 'genkit';
 
 const RecommendCandidatesInputSchema = z.object({
@@ -23,26 +23,41 @@ const RecommendCandidatesOutputSchema = z.object({
   }))
 });
 
-export const recommendCandidatesFlow = ai.defineFlow(
-  {
-    name: 'recommendCandidatesFlow',
-    inputSchema: RecommendCandidatesInputSchema,
-    outputSchema: RecommendCandidatesOutputSchema,
-  },
-  async (input) => {
-    const prompt = await ai.generate({
-      prompt: `
-        You are an AI Recruiter.
-        Project: ${input.projectTitle} - ${input.projectDescription}
-        Skills Needed: ${input.requiredSkills.join(', ')}
-        
-        Candidates: ${JSON.stringify(input.candidateProfiles)}
-        
-        Task: Rank candidates based on fit.
-        Return JSON with 'recommendations' array.
-      `,
-      output: { schema: RecommendCandidatesOutputSchema },
+export async function recommendCandidatesFlow(input: z.infer<typeof RecommendCandidatesInputSchema>): Promise<z.infer<typeof RecommendCandidatesOutputSchema>> {
+  const prompt = `You are an AI Recruiter.
+Project: ${input.projectTitle} - ${input.projectDescription}
+Skills Needed: ${input.requiredSkills.join(', ')}
+
+Candidates: ${JSON.stringify(input.candidateProfiles)}
+
+Task: Rank candidates based on fit.
+Return JSON with 'recommendations' array containing:
+- candidateId: string
+- matchPercentage: number (0-100)
+- reasoning: string
+
+Return ONLY valid JSON.`;
+
+  try {
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-2.0-flash-exp',
+      generationConfig: {
+        responseMimeType: "application/json",
+      }
     });
-    return prompt.output!;
+
+    const result = await model.generateContent({
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+    });
+
+    const response = result.response;
+    const text = response.text();
+    const parsed = JSON.parse(text);
+
+    return parsed;
+  } catch (error) {
+    console.error('Google AI Error in recommendCandidatesFlow:', error);
+    throw error;
   }
-);
+}

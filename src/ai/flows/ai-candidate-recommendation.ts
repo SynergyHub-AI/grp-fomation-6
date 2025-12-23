@@ -41,7 +41,7 @@ Return ONLY valid JSON.`;
   try {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
     const model = genAI.getGenerativeModel({
-      model: 'gemini-1.5-flash',  // Using stable model instead of experimental
+      model: 'gemini-flash-latest',
       generationConfig: {
         responseMimeType: "application/json",
       }

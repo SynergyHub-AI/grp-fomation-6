@@ -89,6 +89,7 @@ export default function NetworkPage() {
                                         width={48}
                                         height={48}
                                         className="rounded-full object-cover border-2 border-border/50"
+                                        unoptimized
                                     />
                                     <div>
                                         <h3 className="font-medium text-foreground">{req.sender.name}</h3>
@@ -132,17 +133,18 @@ export default function NetworkPage() {
                             return (
                                 <div key={req._id} className="flex items-center justify-between bg-secondary/50 dark:bg-black/20 p-4 rounded-xl border border-border/50 dark:border-white/5 hover:border-primary/30 transition-all">
                                     <div className="flex items-center gap-3">
-                                        <Link href={`/profile/${otherUser._id}`}>
+                                        <Link href={`/users/${otherUser._id}`}>
                                             <Image
                                                 src={otherUser.image || "https://placehold.co/150"}
                                                 alt={otherUser.name}
                                                 width={40}
                                                 height={40}
                                                 className="rounded-full object-cover cursor-pointer border-2 border-border/50"
+                                                unoptimized
                                             />
                                         </Link>
                                         <div>
-                                            <Link href={`/profile/${otherUser._id}`} className="font-medium text-foreground hover:text-primary transition-colors">
+                                            <Link href={`/users/${otherUser._id}`} className="font-medium text-foreground hover:text-primary transition-colors">
                                                 {otherUser.name}
                                             </Link>
                                             <p className="text-xs text-muted-foreground">{otherUser.jobTitle || "No Title"}</p>

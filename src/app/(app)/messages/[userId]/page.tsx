@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState, use } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, Send, Loader2 } from "lucide-react";
 import { useSession } from "next-auth/react";
+import { useParams } from "next/navigation";
 
 interface Message {
     _id: string;
@@ -20,8 +21,9 @@ interface UserProfile {
     jobTitle?: string;
 }
 
-export default function ChatPage({ params }: { params: Promise<{ userId: string }> }) {
-    const { userId } = use(params);
+export default function ChatPage() {
+    const params = useParams();
+    const userId = params.userId as string;
     const { data: session } = useSession();
     const [messages, setMessages] = useState<Message[]>([]);
     const [newMessage, setNewMessage] = useState("");
@@ -119,6 +121,7 @@ export default function ChatPage({ params }: { params: Promise<{ userId: string 
                                 width={40}
                                 height={40}
                                 className="rounded-full"
+                                unoptimized
                             />
                             <div>
                                 <h2 className="text-foreground font-semibold">{otherUser.name}</h2>

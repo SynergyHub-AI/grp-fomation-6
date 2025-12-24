@@ -6,17 +6,24 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Award, Loader2, Mail, Globe, Github, Linkedin, ArrowLeft, Star } from 'lucide-react';
+import { Award, Loader2, Mail, Globe, Github, Linkedin, ArrowLeft, Star, UserPlus, MessageSquare, Check, X } from 'lucide-react';
 import Link from 'next/link';
+import { useSession } from "next-auth/react";
 
 export default function UserProfilePage() {
     const params = useParams();
     const router = useRouter();
-    const userId = params.id;
+    const { data: session } = useSession();
+    const userId = params.id as string;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [user, setUser] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const [connectionStatus, setConnectionStatus] = useState<'none' | 'pending' | 'accepted' | 'received'>('none');
+    const [requestId, setRequestId] = useState<string | null>(null);
+
+    // @ts-ignore
+    const currentUserId = session?.user?.id || session?.user?._id;
 
     useEffect(() => {
         const fetchUserProfile = async () => {
@@ -30,6 +37,10 @@ export default function UserProfilePage() {
                 if (res.ok) {
                     const data = await res.json();
                     setUser(data.user);
+                    // Check connection status if not own profile
+                    if (currentUserId && currentUserId !== userId) {
+                        checkConnectionStatus();
+                    }
                 } else {
                     console.error("Failed to fetch user");
                 }
@@ -40,10 +51,74 @@ export default function UserProfilePage() {
             }
         };
 
+        const checkConnectionStatus = async () => {
+            try {
+                // Fetch connections to see if invited or connected
+                const res = await fetch("/api/connections");
+                if (res.ok) {
+                    const data = await res.json();
+                    const requests = data.requests;
+
+                    const existingReq = requests.find((r: any) =>
+                        (r.sender._id === userId && r.recipient._id === currentUserId) ||
+                        (r.sender._id === currentUserId && r.recipient._id === userId)
+                    );
+
+                    if (existingReq) {
+                        setRequestId(existingReq._id);
+                        if (existingReq.status === 'accepted') {
+                            setConnectionStatus('accepted');
+                        } else if (existingReq.sender._id === currentUserId) {
+                            setConnectionStatus('pending'); // I sent it
+                        } else {
+                            setConnectionStatus('received'); // I received it
+                        }
+                    } else {
+                        setConnectionStatus('none');
+                    }
+                }
+            } catch (err) {
+                console.error("Failed to check connection", err);
+            }
+        }
+
         if (userId) {
             fetchUserProfile();
         }
-    }, [userId]);
+    }, [userId, session, currentUserId]);
+
+    const handleConnect = async () => {
+        try {
+            const res = await fetch("/api/connections", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ recipientId: userId }),
+            });
+            if (res.ok) {
+                setConnectionStatus('pending');
+            }
+        } catch (error) {
+            console.error("Failed to send request", error);
+        }
+    };
+
+    const handleResponse = async (action: "accept" | "reject") => {
+        if (!requestId) return;
+        try {
+            const res = await fetch("/api/connections/respond", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ requestId, action }),
+            });
+
+            if (res.ok) {
+                if (action === 'accept') setConnectionStatus('accepted');
+                if (action === 'reject') setConnectionStatus('none');
+            }
+        } catch (error) {
+            console.error("Failed to respond", error);
+        }
+    };
 
     if (loading) return (
         <div className="flex h-screen items-center justify-center bg-background">
@@ -58,7 +133,8 @@ export default function UserProfilePage() {
         </div>
     );
 
-    const hasSocials = user.socialLinks && Object.values(user.socialLinks).some(link => link);
+    const hasSocials = user.socialLinks && Object.values(user.socialLinks).some((link: any) => link);
+    const isMe = currentUserId === userId;
 
     return (
         <div className="space-y-6 max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700 pb-10">
@@ -85,6 +161,39 @@ export default function UserProfilePage() {
                                 <h1 className="text-3xl font-bold font-headline">{user.name}</h1>
                                 <p className="text-muted-foreground font-medium text-lg">{user.jobTitle || "Member"}</p>
                             </div>
+
+                            {/* Actions: Connect / Message */}
+                            {!isMe && (
+                                <div className="flex gap-2">
+                                    {connectionStatus === 'none' && (
+                                        <Button onClick={handleConnect} className="gap-2">
+                                            <UserPlus className="w-4 h-4" /> Connect
+                                        </Button>
+                                    )}
+                                    {connectionStatus === 'pending' && (
+                                        <Button disabled variant="secondary" className="gap-2">
+                                            <Loader2 className="w-4 h-4 animate-spin" /> Pending
+                                        </Button>
+                                    )}
+                                    {connectionStatus === 'received' && (
+                                        <div className="flex gap-2">
+                                            <Button onClick={() => handleResponse('accept')} className="gap-2 bg-blue-600 hover:bg-blue-700">
+                                                <Check className="w-4 h-4" /> Accept
+                                            </Button>
+                                            <Button onClick={() => handleResponse('reject')} variant="secondary" className="gap-2">
+                                                <X className="w-4 h-4" /> Reject
+                                            </Button>
+                                        </div>
+                                    )}
+                                    {connectionStatus === 'accepted' && (
+                                        <Button asChild className="gap-2" variant="default">
+                                            <Link href={`/messages/${userId}`}>
+                                                <MessageSquare className="w-4 h-4" /> Message
+                                            </Link>
+                                        </Button>
+                                    )}
+                                </div>
+                            )}
                         </div>
 
                         <div className="flex items-center gap-4 text-sm text-muted-foreground pt-1">
